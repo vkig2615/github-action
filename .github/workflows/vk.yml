@@ -1,0 +1,28 @@
+name: Upload .bru Files to Slack on PR Merge
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  upload-to-slack:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Find .bru Files
+        id: find-bru
+        run: |
+          echo "::set-output name=bru_files::$(find . -name "*.bru" | tr '\n' ' ')"
+
+      - name: Upload .bru Files to Slack
+        env:
+          SLACK_TOKEN: ${{ secrets.SLACK_TOKEN }} # Slack API token
+          SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL }} # Slack channel ID
+        run: |
+          for file in ${{ steps.find-bru.outputs.bru_files }}; do
+            curl -F file=@$file -F "channels=$SLACK_CHANNEL" -H "Authorization: Bearer $SLACK_TOKEN" https://slack.com/api/files.upload
+          done
